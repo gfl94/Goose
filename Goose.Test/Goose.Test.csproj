@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Castle.Core" Version="4.2.1" />
+    <ProjectReference Include="..\Goose\Goose.csproj" />
   </ItemGroup>
 
 </Project>

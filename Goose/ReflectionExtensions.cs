@@ -16,19 +16,19 @@ namespace Goose
         private static string GetGenericSignatureText(MethodInfo method)
         {
             if (!method.IsGenericMethod) return string.Empty;
-            return $"<{string.Join(",", method.GetGenericMethodDefinition().GetGenericArguments().Select(a => a.Name))}>";
+            return $"<{string.Join(", ", method.GetGenericArguments().Select(a => a.FullName))}>";
         }
 
         private static string GetParameterSignatureText(MethodInfo method)
         {
             var parameters = method.GetParameters();
             if (parameters.Length == 0) return "()";
-            return $"({string.Join(",", parameters.Select(p => GetParameterText(p)))})";
+            return $"({string.Join(", ", parameters.Select(p => GetParameterText(p)))})";
         }
 
         private static string GetParameterText(ParameterInfo p)
         {
-            var parameterTypeName = p.ParameterType.Name;
+            var parameterTypeName = p.ParameterType.FullName;
             if (!p.ParameterType.IsByRef) return parameterTypeName;
             if (p.IsOut) return "out " + parameterTypeName;
             return "ref " + parameterTypeName;

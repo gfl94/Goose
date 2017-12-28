@@ -18,7 +18,7 @@ namespace Goose
 
         public void Intercept(IInvocation invocation)
         {
-            throw new NotImplementedException($"{_instance.GetType().Name} doesn't implement method {invocation.Method.GetSignatureText()}");
+            throw new NotImplementedException($"{_instance.GetType().FullName} doesn't implement method \"{invocation.Method.GetSignatureText()}\"");
         }
     }
 }

@@ -4,8 +4,11 @@ using System.Text;
 
 namespace Goose
 {
-    public class GooseOption
+    enum TypeCompatibility
     {
-        public static GooseOption Default = new GooseOption();
+        Incompatible,
+        Same,
+        FromGoose,
+        ToGoose
     }
 }

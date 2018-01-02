@@ -9,11 +9,10 @@ namespace Goose
     {
         static IProxyGenerator ProxyGenerator = new ProxyGenerator();
 
-        public static TInterface Build<TInterface>(object instance, GooseOption option)
-            where TInterface : class
+        public static object Build(object source, Type targetType, GooseOptions options)
         {
-            var interceptor = new GooseInterceptor(instance, option);
-            return ProxyGenerator.CreateInterfaceProxyWithoutTarget<TInterface>(interceptor);
+            var interceptor = new GooseInterceptor(source, targetType, options);
+            return ProxyGenerator.CreateInterfaceProxyWithoutTarget(targetType, new[] { typeof(IGooseTarget) }, interceptor);
         }
     }
 }

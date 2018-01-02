@@ -6,20 +6,27 @@ namespace Goose
 {
     public static class Extensions
     {
-        public static TInterface Goose<TInterface>(this object instance)
-            where TInterface : class
+        public static TTarget Goose<TTarget>(this object source, params GooseTypePair[] knownTypes)
+            where TTarget : class
         {
-            return Goose<TInterface>(instance, GooseOption.Default);
+            return (TTarget)Goose(source, typeof(TTarget), knownTypes);
         }
 
-        public static TInterface Goose<TInterface>(this object instance, GooseOption option)
-            where TInterface : class
+        public static object Goose(this object source, Type targetType, params GooseTypePair[] knownTypes)
         {
-            Guard.RequireNotNull(instance);
-            //Guard.RequireClass(instance.GetType());
-            Guard.RequirePublicInterface(typeof(TInterface));
+            Guard.RequireNotNull(source, nameof(source));
+            Guard.RequireNotNull(targetType, nameof(targetType));
+            Guard.RequirePublicInterface(targetType);
 
-            return GooseProxy.Build<TInterface>(instance, option);
+            var options = new GooseOptions
+            {
+                KnownTypes = knownTypes?.Length > 0 ? new HashSet<GooseTypePair>(knownTypes) : new HashSet<GooseTypePair>()
+            };
+
+            var selfKnownPair = GooseTypePair.Create(source.GetType(), targetType);
+            options.KnownTypes.Add(selfKnownPair);
+
+            return GooseProxy.Build(source, targetType, options);
         }
     }
 }

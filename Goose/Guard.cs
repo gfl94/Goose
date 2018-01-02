@@ -7,7 +7,6 @@ namespace Goose
 {
     class Guard
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void RequirePublicInterface(Type type)
         {
             if (!type.IsInterface || !type.IsPublic)
@@ -16,21 +15,11 @@ namespace Goose
             }
         }
 
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        //public static void RequireClass(Type type)
-        //{
-        //    if (!type.IsClass)
-        //    {
-        //        throw new ArgumentException($"{type.FullName} is not an interface");
-        //    }
-        //}
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void RequireNotNull(object instance)
+        public static void RequireNotNull(object arg, string argName)
         {
-            if (instance == null)
+            if (arg == null)
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException(argName);
             }
         }
     }

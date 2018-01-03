@@ -160,8 +160,17 @@ namespace Goose
                 invoke = Expression.Call(GooseExtensionMethod, invoke, gooseType, Expression.Constant(_options.KnownTypes.ToArray()));
             }
 
-            var convert = Expression.Convert(invoke, typeof(object));
-            return Expression.Lambda<Func<object[], object>>(convert, parameter).Compile();
+            Expression body;
+            if (method.ReturnType == typeof(void))
+            {
+                body = Expression.Block(invoke, Expression.Constant(null));
+            }
+            else
+            {
+                body = Expression.Convert(invoke, typeof(object));
+            }
+
+            return Expression.Lambda<Func<object[], object>>(body, parameter).Compile();
         }
     }
 }

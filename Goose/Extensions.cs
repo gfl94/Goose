@@ -14,9 +14,11 @@ namespace Goose
 
         public static object Goose(this object source, Type targetType, params GooseTypePair[] knownTypes)
         {
-            Guard.RequireNotNull(source, nameof(source));
-            Guard.RequireNotNull(targetType, nameof(targetType));
-            Guard.RequirePublicInterface(targetType);
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+
+            if (targetType == null)
+                throw new ArgumentNullException(nameof(targetType));            
 
             var options = new GooseOptions
             {

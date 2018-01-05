@@ -132,11 +132,22 @@ namespace Goose.Test
                 gooseBuild.MBuild();
             }
 
+            //expected answer
+            var c0 = new C();
+            for (var i = 0; i < _count1; ++i)
+            {
+                c0.MOwnMethodC();
+            }
+            for (var i = 0; i < _count2; ++i)
+            {
+                c0.MBuild();
+            }
+
             var c = gooseC.GetSource<C>();
-            Assert.Equal(_count1 + _count2 * 1000, c.Count);
+            Assert.Equal(c0.Count, c.Count);
 
             var cc = gooseBuild.GetSource<C>();
-            Assert.Equal(_count1 + _count2 * 1000, c.Count);
+            Assert.Equal(c0.Count, c.Count);
         }
 
         [Fact]

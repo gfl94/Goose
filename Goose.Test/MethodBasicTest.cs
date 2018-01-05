@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Goose.Test
 {
-    public class MethodAdvancedTest
+    public class MethodBasicTest
     {
         public class A
         {

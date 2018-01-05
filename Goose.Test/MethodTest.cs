@@ -17,7 +17,8 @@ namespace Goose.Test
 
     class Person
     {
-        public void Eat(Food food) { }
+        public int TotalCalories { get; set; }
+        public void Eat(Food food) { TotalCalories += food.Calories; }
     }
 
     interface IPerson
@@ -31,12 +32,18 @@ namespace Goose.Test
         [Fact]
         public void M()
         {
-            var food = new Food();
-            var person = new Person();
+            var food = new Food()
+            {
+                Calories = 100
+            };
+            var source = new Person();
 
             var ifood = food.Goose<IFood>();
-            var iperson = person.Goose<IPerson>(GooseTypePair.Create<Food, IFood>());
+            var iperson = source.Goose<IPerson>(GooseTypePair.Create<Food, IFood>());
             iperson.Eat(ifood);
+
+            var person = iperson.GetSource<Person>();
+            Assert.Equal(food.Calories, person.TotalCalories);
         }
     }
 }

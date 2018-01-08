@@ -46,40 +46,6 @@ namespace Goose.Test
         Random _random = new Random();
 
         [Fact]
-        public void BigDuck_Test()
-        {
-            var count = _random.Next(1, 100);
-
-            var source = new Duck();
-            var target = source.Goose<IBigDuck>();
-
-            for (var i = 0; i < count; i++)
-            {
-                target.Quack();
-            }
-            Assert.Throws<GooseNotImplementedException>(() => target.Bark());
-
-            var duck = target.GetSource<Duck>();
-            Assert.NotNull(duck);
-            Assert.Equal(count, duck.QuackCount);
-        }
-
-        [Fact]
-        public void BigDuck_Test2()
-        {
-
-            var source = new BigDuck();
-            var target = source.Goose<IBigDuck>();
-
-            Assert.Throws<GooseAmbiguousMatchException>(() => target.Quack());
-            target.Bark();
-
-            var duck = target.GetSource<BigDuck>();
-            Assert.NotNull(duck);
-            Assert.Equal(-10, duck.QuackCount);
-        }
-
-        [Fact]
         public void Exactly_Match()
         {
             var count = _random.Next(1, 100);
@@ -120,6 +86,40 @@ namespace Goose.Test
 
             var source32 = target.GetSource<Int32>();
             Assert.Equal(1, source32);
+        }
+
+        [Fact]
+        public void BigDuck_Test()
+        {
+            var count = _random.Next(1, 100);
+
+            var source = new Duck();
+            var target = source.Goose<IBigDuck>();
+
+            for (var i = 0; i < count; i++)
+            {
+                target.Quack();
+            }
+            Assert.Throws<GooseNotImplementedException>(() => target.Bark());
+
+            var duck = target.GetSource<Duck>();
+            Assert.NotNull(duck);
+            Assert.Equal(count, duck.QuackCount);
+        }
+
+        [Fact]
+        public void BigDuck_Test2()
+        {
+
+            var source = new BigDuck();
+            var target = source.Goose<IBigDuck>();
+
+            Assert.Throws<GooseAmbiguousMatchException>(() => target.Quack());
+            target.Bark();
+
+            var duck = target.GetSource<BigDuck>();
+            Assert.NotNull(duck);
+            Assert.Equal(-10, duck.QuackCount);
         }
     }
 }

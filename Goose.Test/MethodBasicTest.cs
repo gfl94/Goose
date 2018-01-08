@@ -76,7 +76,7 @@ namespace Goose.Test
 
         Random _random = new Random();
 
-        [Fact(Skip = "true")]
+        [Fact]
         public void GooseInproperConstruction()
         {
             var originalCA = _random.Next(10, 200);
@@ -110,7 +110,7 @@ namespace Goose.Test
             Assert.Equal(originalCA, cc.CC);
         }
 
-        [Fact(DisplayName = "multiple parameter tests with inporper invocation")]
+        [Fact]
         public void GooseAsMulitpleParaThrows()
         {
             var originalCA = _random.Next(10, 200);

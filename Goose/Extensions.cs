@@ -18,14 +18,12 @@ namespace Goose
                 throw new ArgumentNullException(nameof(source));
 
             if (targetType == null)
-                throw new ArgumentNullException(nameof(targetType));            
-
-            var options = new GooseOptions
-            {
-                KnownTypes = knownTypes?.Length > 0 ? new HashSet<GooseTypePair>(knownTypes) : new HashSet<GooseTypePair>()
-            };
+                throw new ArgumentNullException(nameof(targetType));
 
             var selfKnownPair = GooseTypePair.Create(source.GetType(), targetType);
+
+            var options = new GooseOptions();
+            options.KnownTypes = knownTypes?.Length > 0 ? new HashSet<GooseTypePair>(knownTypes) : new HashSet<GooseTypePair>();
             options.KnownTypes.Add(selfKnownPair);
 
             return GooseProxy.Build(source, targetType, options);

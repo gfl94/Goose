@@ -19,9 +19,11 @@ namespace Goose
             if (targetType == null)
                 throw new ArgumentNullException(nameof(targetType));
 
+            if (!targetType.IsInterface)
+                throw new ArgumentException($"{targetType.FullName} is not an interface");
+
             return new GooseTypePair(sourceType, targetType);
         }
-
 
         public Type SourceType { get; }
 

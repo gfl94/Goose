@@ -20,13 +20,13 @@ namespace Goose.Test
         public int TotalCalories { get; set; }
         public void Eat(Food food) { TotalCalories += food.Calories; }
         public void Eat(Food food, Vegetable veg) { TotalCalories += (food.Calories + veg.Calories); }
-        public Food CookFoodWithVegetable(Vegetable veg) { return new Food { Calories = veg.Calories * 2}; }
+        public Food CookFoodWithVegetable(Vegetable veg) { return new Food { Calories = veg.Calories * 2 }; }
         public Vegetable PlantVege() { return new Vegetable() { Calories = TotalCalories }; }
 
         public virtual void Walk() { TotalCalories -= 100; }
     }
 
-    class FatPerson: Person
+    class FatPerson : Person
     {
         public new void Eat(Food food) { TotalCalories += 2 * food.Calories; }
         public override void Walk() { TotalCalories -= 50; }
@@ -71,7 +71,7 @@ namespace Goose.Test
         public void Goose_Single_Parameter_Test()
         {
             int food_cal = _random.Next(100, 200);
-            var food = new Food(){ Calories = food_cal };
+            var food = new Food() { Calories = food_cal };
             var source = new Person();
 
             var ifood = food.Goose<IFood>();
@@ -82,7 +82,7 @@ namespace Goose.Test
             Assert.Equal(food.Calories, person.TotalCalories);
         }
 
-        [Fact(Skip = "Unexpected exception")]
+        [Fact]
         public void Goose_Inproper_Construction()
         {
             int food_cal = _random.Next(100, 200);
@@ -90,8 +90,11 @@ namespace Goose.Test
             var source = new Person();
 
             var ifood = food.Goose<IFood>();
-            var iperson = source.Goose<IPerson>(GooseTypePair.Create<IFood, Food>());
-            Assert.Throws<GooseNotImplementedException>(() => iperson.Eat(ifood));
+            Assert.Throws<ArgumentException>(() =>
+            {
+                var iperson = source.Goose<IPerson>(GooseTypePair.Create<IFood, Food>());
+                iperson.Eat(ifood);
+            });
         }
 
         [Fact]
@@ -147,13 +150,13 @@ namespace Goose.Test
         {
             int food_cal = _random.Next(200, 500);
             var source = new Person() { TotalCalories = food_cal };
-            
+
             var ifarmer = source.Goose<IFarmer>(GooseTypePair.Create<Vegetable, IVegetable>());
             var ivege = ifarmer.PlantVege();
 
             Vegetable vege = ivege.GetSource<Vegetable>();
             Assert.Equal(
-                new Person() { TotalCalories = food_cal }.PlantVege().Calories, 
+                new Person() { TotalCalories = food_cal }.PlantVege().Calories,
                 vege.Calories);
         }
 
@@ -165,7 +168,7 @@ namespace Goose.Test
             var source = new Person();
 
             var ivege = vege.Goose<IVegetable>();
-            var icooker = source.Goose<ICooker>(GooseTypePair.Create<Vegetable, IVegetable>(), 
+            var icooker = source.Goose<ICooker>(GooseTypePair.Create<Vegetable, IVegetable>(),
                 GooseTypePair.Create<Food, IFood>());
             var ifood = icooker.CookFoodWithVegetable(ivege);
 
@@ -176,13 +179,13 @@ namespace Goose.Test
 
             Assert.Equal(expected_cal, food.Calories);
         }
-        
+
         [Fact]
         public void Polymorphism_Test()
         {
             int food_cal = _random.Next(100, 200);
             Food food = new Food() { Calories = food_cal };
-            
+
             Person source = new FatPerson();
 
             IFood ifood = food.Goose<IFood>();

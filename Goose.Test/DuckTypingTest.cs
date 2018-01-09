@@ -5,6 +5,16 @@ using Xunit;
 
 namespace Goose.Test
 {
+    class QuackException : Exception
+    {
+        public int QuackCount { get; set; }
+    }
+
+    interface IQuackException
+    {
+        int QuackCount { get; }
+    }
+
     class Duck
     {
         public int QuackCount { get; protected set; }
@@ -14,11 +24,12 @@ namespace Goose.Test
         public void Quack()
         {
             this.QuackCount++;
+            //throw new QuackException() { QuackCount = this.QuackCount };
         }
 
         public virtual void Swim() { SwimDistance += 1; }
     }
-    class NamedDuck: Duck
+    class NamedDuck : Duck
     {
         public string Name { get; set; }
     }
@@ -50,7 +61,7 @@ namespace Goose.Test
         public new void Quack() { }
     }
 
-    class QuickSwimDuck: Duck
+    class QuickSwimDuck : Duck
     {
         public override void Swim() { SwimDistance += 10; }
     }
@@ -64,7 +75,7 @@ namespace Goose.Test
         {
             Duck source = new Duck();
             // interface needed here
-            Assert.Throws<ArgumentException>(() => source.Goose<Duck>());
+            Assert.Throws<ArgumentException>(() => source.As<Duck>());
         }
 
         [Fact]
@@ -73,11 +84,18 @@ namespace Goose.Test
             var count = _random.Next(1, 100);
 
             var source = new Duck();
-            var target = source.Goose<IDuck>();
+            var target = source.As<IDuck>(GooseTypePair.Create<QuackException, IQuackException>());
 
             for (var i = 0; i < count; i++)
             {
-                target.Quack();
+                try
+                {
+                    target.Quack();
+                }
+                catch (WrappedException<IQuackException> e)
+                {
+                    //var ee = e.Exception;
+                }
             }
 
             var duck = target.GetSource<Duck>();
@@ -89,7 +107,7 @@ namespace Goose.Test
         public void Not_Implemented_Methods()
         {
             var source = new Duck();
-            var target = source.Goose<INamedDuck>();
+            var target = source.As<INamedDuck>();
             target.Quack();
             Assert.Throws<GooseNotImplementedException>(() => target.Name);
 
@@ -98,11 +116,11 @@ namespace Goose.Test
             Assert.Equal(1, duck.QuackCount);
         }
 
-        [Fact] 
+        [Fact]
         public void Unrelated_Class_Func_Test()
         {
             var source = 1;
-            var target = source.Goose<INamedDuck>();
+            var target = source.As<INamedDuck>();
             Assert.Throws<GooseNotImplementedException>(() => target.Quack());
             Assert.Throws<GooseNotImplementedException>(() => target.Name);
 
@@ -114,7 +132,7 @@ namespace Goose.Test
         public void Overwrite_Method_Test()
         {
             SlientDuck source = new SlientDuck();
-            IDuck target = source.Goose<IDuck>();
+            IDuck target = source.As<IDuck>();
 
             Assert.Throws<GooseAmbiguousMatchException>(() => target.Quack());
 
@@ -130,7 +148,7 @@ namespace Goose.Test
             var count2 = _random.Next(1, 100);
 
             QuickSwimDuck source = new QuickSwimDuck();
-            IDuck target = source.Goose<IDuck>();
+            IDuck target = source.As<IDuck>();
 
             for (var i = 0; i < count1; i++)
             {
@@ -170,13 +188,13 @@ namespace Goose.Test
 
             QuickSwimDuck source = new QuickSwimDuck();
 
-            ISwimmable swimmable = source.Goose<ISwimmable>();
+            ISwimmable swimmable = source.As<ISwimmable>();
             for (var i = 0; i < count1; i++)
             {
                 swimmable.Swim();
             }
 
-            IQuackable quackable = source.Goose<IQuackable>();
+            IQuackable quackable = source.As<IQuackable>();
             for (var i = 0; i < count2; ++i)
             {
                 quackable.Quack();
@@ -213,9 +231,9 @@ namespace Goose.Test
 
             QuickSwimDuck source = new QuickSwimDuck();
 
-            ISwimmable swimmable = source.Goose<ISwimmable>();
+            ISwimmable swimmable = source.As<ISwimmable>();
             swimmable.Swim();
-            IQuackable quackable = swimmable.Goose<IQuackable>();
+            IQuackable quackable = swimmable.As<IQuackable>();
 
             Assert.Throws<GooseNotImplementedException>(() => quackable.Quack()); // hide method by default
         }

@@ -74,8 +74,8 @@ namespace Goose.Test
             var food = new Food() { Calories = food_cal };
             var source = new Person();
 
-            var ifood = food.Goose<IFood>();
-            var iperson = source.Goose<IPerson>(GooseTypePair.Create<Food, IFood>());
+            var ifood = food.As<IFood>();
+            var iperson = source.As<IPerson>(GooseTypePair.Create<Food, IFood>());
             iperson.Eat(ifood);
 
             var person = iperson.GetSource<Person>();
@@ -89,10 +89,10 @@ namespace Goose.Test
             var food = new Food() { Calories = food_cal };
             var source = new Person();
 
-            var ifood = food.Goose<IFood>();
+            var ifood = food.As<IFood>();
             Assert.Throws<ArgumentException>(() =>
             {
-                var iperson = source.Goose<IPerson>(GooseTypePair.Create<IFood, Food>());
+                var iperson = source.As<IPerson>(GooseTypePair.Create<IFood, Food>());
                 iperson.Eat(ifood);
             });
         }
@@ -106,14 +106,14 @@ namespace Goose.Test
             Vegetable vege = new Vegetable() { Calories = vege_cal };
             Person source = new Person();
 
-            IFood ifood = food.Goose<IFood>();
-            IVegetable ivege = vege.Goose<IVegetable>();
+            IFood ifood = food.As<IFood>();
+            IVegetable ivege = vege.As<IVegetable>();
 
 
-            IEatFoodVege ip1 = source.Goose<IEatFoodVege>();
-            IEatFoodVege ip2 = source.Goose<IEatFoodVege>(
+            IEatFoodVege ip1 = source.As<IEatFoodVege>();
+            IEatFoodVege ip2 = source.As<IEatFoodVege>(
                     GooseTypePair.Create<Food, IFood>());
-            IEatFoodVege ip3 = source.Goose<IEatFoodVege>(
+            IEatFoodVege ip3 = source.As<IEatFoodVege>(
                     GooseTypePair.Create<Vegetable, IVegetable>());
 
             Assert.Throws<GooseNotImplementedException>(() => ip1.Eat(ifood, ivege));
@@ -130,9 +130,9 @@ namespace Goose.Test
             Vegetable vege = new Vegetable() { Calories = vege_cal };
             Person source = new Person();
 
-            IFood ifood = food.Goose<IFood>();
-            IVegetable ivege = vege.Goose<IVegetable>();
-            IEatFoodVege ip = source.Goose<IEatFoodVege>(
+            IFood ifood = food.As<IFood>();
+            IVegetable ivege = vege.As<IVegetable>();
+            IEatFoodVege ip = source.As<IEatFoodVege>(
                     GooseTypePair.Create<Food, IFood>(),
                     GooseTypePair.Create<Vegetable, IVegetable>());
             ip.Eat(ifood, ivege);
@@ -151,7 +151,7 @@ namespace Goose.Test
             int food_cal = _random.Next(200, 500);
             var source = new Person() { TotalCalories = food_cal };
 
-            var ifarmer = source.Goose<IFarmer>(GooseTypePair.Create<Vegetable, IVegetable>());
+            var ifarmer = source.As<IFarmer>(GooseTypePair.Create<Vegetable, IVegetable>());
             var ivege = ifarmer.PlantVege();
 
             Vegetable vege = ivege.GetSource<Vegetable>();
@@ -167,8 +167,8 @@ namespace Goose.Test
             var vege = new Vegetable() { Calories = vege_cal };
             var source = new Person();
 
-            var ivege = vege.Goose<IVegetable>();
-            var icooker = source.Goose<ICooker>(GooseTypePair.Create<Vegetable, IVegetable>(),
+            var ivege = vege.As<IVegetable>();
+            var icooker = source.As<ICooker>(GooseTypePair.Create<Vegetable, IVegetable>(),
                 GooseTypePair.Create<Food, IFood>());
             var ifood = icooker.CookFoodWithVegetable(ivege);
 
@@ -188,8 +188,8 @@ namespace Goose.Test
 
             Person source = new FatPerson();
 
-            IFood ifood = food.Goose<IFood>();
-            IPerson target = source.Goose<IPerson>(GooseTypePair.Create<Food, IFood>());
+            IFood ifood = food.As<IFood>();
+            IPerson target = source.As<IPerson>(GooseTypePair.Create<Food, IFood>());
 
             Assert.Throws<GooseAmbiguousMatchException>(() => target.Eat(ifood));
             target.Walk();

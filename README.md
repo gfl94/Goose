@@ -16,7 +16,7 @@ An unconstrained duck typing library.
     }
 	
 	var duck = new Duck();
-	var duckTyped = duck.Goose<IDuck>();
+	var duckTyped = duck.As<IDuck>();
 	duckTyped.Quack();      //calls Duck.Quack()
 
 Goose Typing
@@ -36,7 +36,7 @@ More than duck typing, the interface can have more methods than the class.
     }
 	
 	var duck = new Duck();
-	var duckTyped = duck.Goose<INamedDuck>();
+	var duckTyped = duck.As<INamedDuck>();
 	duckTyped.Quack();          //calls Duck.Quack()
 	var name = duckTyped.Name;  //throws NotImplementedException
 
@@ -68,6 +68,6 @@ More than simple goose typing, you can make classes and interfaces compatible in
 
     var food = new Food();
     var person = new Person();
-    var ifood = food.Goose<IFood>();
-    var iperson = person.Goose<IPerson>(GooseTypePair.Create<Food, IFood>());
+    var ifood = food.As<IFood>();
+    var iperson = person.As<IPerson>(GooseTypePair.Create<Food, IFood>());
     iperson.Eat(ifood);

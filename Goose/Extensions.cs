@@ -6,13 +6,13 @@ namespace Goose
 {
     public static class Extensions
     {
-        public static TTarget Goose<TTarget>(this object source, params GooseTypePair[] knownTypes)
+        public static TTarget As<TTarget>(this object source, params GooseTypePair[] knownTypes)
             where TTarget : class
         {
-            return (TTarget)Goose(source, typeof(TTarget), knownTypes);
+            return (TTarget)As(source, typeof(TTarget), knownTypes);
         }
 
-        public static object Goose(this object source, Type targetType, params GooseTypePair[] knownTypes)
+        public static object As(this object source, Type targetType, params GooseTypePair[] knownTypes)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));

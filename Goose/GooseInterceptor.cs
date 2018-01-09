@@ -13,6 +13,8 @@ namespace Goose
         private readonly object _source;
         private readonly Type _targetType;
         private readonly GooseOptions _options;
+        private readonly Dictionary<MethodInfo, Func<object[], object>> _knownHandlers;
+        private readonly HashSet<MethodInfo> _blacklist;
 
         public static readonly MethodInfo GetGooseSourceMethod
             = typeof(IGooseTarget).GetProperty(nameof(IGooseTarget.Source)).GetGetMethod();
@@ -25,6 +27,8 @@ namespace Goose
             _source = source;
             _targetType = targetType;
             _options = options;
+            _knownHandlers = new Dictionary<MethodInfo, Func<object[], object>>();
+            _blacklist = new HashSet<MethodInfo>();
         }
 
         public void Intercept(IInvocation invocation)
@@ -36,14 +40,13 @@ namespace Goose
             }
 
             var sourceType = _source.GetType();
-            var handler = MethodInvokerCache.GetHandler(invocation.Method, _options, out var blacklist);
 
-            if (blacklist)
+            if (_blacklist.Contains(invocation.Method))
                 throw new GooseNotImplementedException(sourceType, invocation.Method);
 
-            if (handler != null)
+            if (_knownHandlers.ContainsKey(invocation.Method))
             {
-                invocation.ReturnValue = handler(_source, invocation.Arguments);
+                invocation.ReturnValue = _knownHandlers[invocation.Method](invocation.Arguments);
                 return;
             }
 
@@ -85,13 +88,13 @@ namespace Goose
 
             if (validSourceMethods.Count == 0)
             {
-                MethodInvokerCache.AddBlacklist(invocation.Method, _options);
+                _blacklist.Add(invocation.Method);
                 throw new GooseNotImplementedException(sourceType, invocation.Method);
             }
 
-            handler = MakeHandler(invocation, validSourceMethods.Single(), argumentCompatibilities, returnTypeCompatibility);
-            invocation.ReturnValue = handler(_source, invocation.Arguments);
-            MethodInvokerCache.AddHandler(invocation.Method, _options, handler);
+            var handler = MakeHandler(invocation, validSourceMethods.Single(), argumentCompatibilities, returnTypeCompatibility);
+            invocation.ReturnValue = handler(invocation.Arguments);
+            _knownHandlers.Add(invocation.Method, handler);
         }
 
         private TypeCompatibility GetCompatibility(Type fromType, Type toType)
@@ -114,16 +117,15 @@ namespace Goose
             return TypeCompatibility.Incompatible;
         }
 
-        private Func<object, object[], object> MakeHandler(IInvocation invocation, MethodInfo method, TypeCompatibility[] argumentCompatibilities, TypeCompatibility returnTypeCompatibility)
+        private Func<object[], object> MakeHandler(IInvocation invocation, MethodInfo method, TypeCompatibility[] argumentCompatibilities, TypeCompatibility returnTypeCompatibility)
         {
-            var parameter1 = Expression.Parameter(typeof(object));
-            var parameter2 = Expression.Parameter(typeof(object[]));
+            var parameter = Expression.Parameter(typeof(object[]));
 
             var arguments = new List<Expression>();
             var methodParameters = method.GetParameters();
             for (var i = 0; i < argumentCompatibilities.Length; i++)
             {
-                var accessArgument = Expression.ArrayIndex(parameter2, Expression.Constant(i));
+                var accessArgument = Expression.ArrayIndex(parameter, Expression.Constant(i));
                 Expression argument = null;
                 if (argumentCompatibilities[i] == TypeCompatibility.Same)
                 {
@@ -144,7 +146,7 @@ namespace Goose
                 arguments.Add(Expression.Convert(argument, methodParameters[i].ParameterType));
             }
 
-            Expression invoke = Expression.Call(Expression.Convert(parameter1, _source.GetType()), method, arguments);
+            Expression invoke = Expression.Call(Expression.Constant(_source), method, arguments);
             if (returnTypeCompatibility == TypeCompatibility.FromGoose)
             {
                 var asIGooseTarget = Expression.Convert(invoke, typeof(IGooseTarget));
@@ -187,7 +189,7 @@ namespace Goose
                 body = Expression.TryCatch(body, catches.ToArray());
             }
 
-            return Expression.Lambda<Func<object, object[], object>>(body, parameter1, parameter2).Compile();
+            return Expression.Lambda<Func<object[], object>>(body, parameter).Compile();
         }
     }
 }

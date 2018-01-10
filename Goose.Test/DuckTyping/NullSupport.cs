@@ -23,7 +23,6 @@ namespace Goose.Test.DuckTyping
             Duck source = null;
             IDuck target = source.As<IDuck>();
             Assert.NotNull(target);
-            Assert.Null(target.GetSource());
             Assert.Null(target.GetSource<Duck>());
         }
 

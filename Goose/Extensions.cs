@@ -17,6 +17,11 @@ namespace Goose
             if (targetType == null)
                 throw new ArgumentNullException(nameof(targetType));
 
+            if (source != null && targetType.IsAssignableFrom(source.GetType()))
+            {
+                return source;
+            }
+
             var options = new GooseOptions
             {
                 KnownTypes = knownTypes?.Length > 0 
@@ -35,17 +40,16 @@ namespace Goose
 
         public static T GetSource<T>(this object target)
         {
-            return (T)GetSource(target);
-        }
-
-        public static object GetSource(this object target)
-        {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
 
             if (target is IGooseTyped goosed)
             {
-                return goosed.Source;
+                return (T)goosed.Source;
+            }
+            else if (typeof(T).IsAssignableFrom(target.GetType()))
+            {
+                return (T)target;
             }
             else
             {

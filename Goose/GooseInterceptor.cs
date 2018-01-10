@@ -265,18 +265,7 @@ namespace Goose
                 typeNames.Push(type.Name);
                 type = type.BaseType;
             }
-            return string.Join("->", typeNames.Reverse());
-        }
-
-        private int GetScore(TypeCompatibility compatibility)
-        {
-            switch (compatibility)
-            {
-                case TypeCompatibility.Same: return 100;
-                case TypeCompatibility.ToGoose: return 10;
-                case TypeCompatibility.FromGoose: return 1;
-                default: return 0;
-            }
+            return string.Join("|", typeNames.Reverse());
         }
     }
 }

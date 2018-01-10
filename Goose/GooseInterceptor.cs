@@ -17,7 +17,7 @@ namespace Goose
         private readonly HashSet<MethodInfo> _blacklist;
 
         public static readonly MethodInfo GetGooseSourceMethod
-            = typeof(IGooseTarget).GetProperty(nameof(IGooseTarget.Source)).GetGetMethod();
+            = typeof(IGooseTyped).GetProperty(nameof(IGooseTyped.Source)).GetGetMethod();
 
         public static readonly MethodInfo GooseExtensionMethod
             = typeof(Extensions).GetMethod(nameof(Extensions.As), new[] { typeof(object), typeof(Type), typeof(GooseTypePair[]) });
@@ -38,6 +38,9 @@ namespace Goose
                 invocation.ReturnValue = _source;
                 return;
             }
+
+            if (_source == null)
+                throw new NullReferenceException($"{nameof(invocation.Method)}: Object reference not set to an instance of an object.");
 
             var sourceType = _source.GetType();
 
@@ -83,16 +86,40 @@ namespace Goose
                 validSourceMethods.Add(sourceMethod);
             }
 
-            if (validSourceMethods.Count > 1)
-                throw new GooseAmbiguousMatchException(validSourceMethods);
+            MethodInfo candidate = null;
 
-            if (validSourceMethods.Count == 0)
+            if (validSourceMethods.Count > 1)
+            {
+                var currentType = sourceType;
+                while (true)
+                {
+                    var candidates = validSourceMethods
+                        .Where(m => m.DeclaringType.Equals(currentType))
+                        .ToList();
+
+                    if (candidates.Count > 1)
+                        throw new GooseAmbiguousMatchException(validSourceMethods);
+
+                    if (candidates.Count == 1)
+                    {
+                        candidate = candidates.Single();
+                        break;
+                    }
+
+                    currentType = currentType.BaseType;
+                }
+            }
+            else if (validSourceMethods.Count == 1)
+            {
+                candidate = validSourceMethods.Single();
+            }
+            else if (validSourceMethods.Count == 0)
             {
                 _blacklist.Add(invocation.Method);
                 throw new GooseNotImplementedException(sourceType, invocation.Method);
             }
 
-            var handler = MakeHandler(invocation, validSourceMethods.Single(), argumentCompatibilities, returnTypeCompatibility);
+            var handler = MakeHandler(invocation, candidate, argumentCompatibilities, returnTypeCompatibility);
             invocation.ReturnValue = handler(invocation.Arguments);
             _knownHandlers.Add(invocation.Method, handler);
         }
@@ -120,54 +147,85 @@ namespace Goose
         private Func<object[], object> MakeHandler(IInvocation invocation, MethodInfo method, TypeCompatibility[] argumentCompatibilities, TypeCompatibility returnTypeCompatibility)
         {
             var parameter = Expression.Parameter(typeof(object[]));
+            var variables = new List<ParameterExpression>();
+            var beforeInvoke = new List<Expression>();
+            var invoke = new List<Expression>();
+            var afterInvoke = new List<Expression>();
 
             var arguments = new List<Expression>();
             var methodParameters = method.GetParameters();
             for (var i = 0; i < argumentCompatibilities.Length; i++)
             {
-                var accessArgument = Expression.ArrayIndex(parameter, Expression.Constant(i));
+                var arrayIndex = Expression.ArrayIndex(parameter, Expression.Constant(i));
                 Expression argument = null;
                 if (argumentCompatibilities[i] == TypeCompatibility.Same)
                 {
-                    argument = accessArgument;
+                    argument = arrayIndex;
                 }
                 else if (argumentCompatibilities[i] == TypeCompatibility.FromGoose)
                 {
-                    var asIGooseTarget = Expression.Convert(accessArgument, typeof(IGooseTarget));
-                    var getSource = Expression.Property(asIGooseTarget, nameof(IGooseTarget.Source));
+                    var asIGooseTarget = Expression.Convert(arrayIndex, typeof(IGooseTyped));
+                    var getSource = Expression.Property(asIGooseTarget, nameof(IGooseTyped.Source));
                     argument = getSource;
                 }
                 else if (argumentCompatibilities[i] == TypeCompatibility.ToGoose)
                 {
                     var gooseType = Expression.Constant(methodParameters[i].ParameterType);
-                    var callGooseExtension = Expression.Call(GooseExtensionMethod, accessArgument, gooseType, Expression.Constant(_options.KnownTypes.ToArray()));
+                    var callGooseExtension = Expression.Call(GooseExtensionMethod, arrayIndex, gooseType, Expression.Constant(_options.KnownTypes.ToArray()));
                     argument = callGooseExtension;
                 }
-                arguments.Add(Expression.Convert(argument, methodParameters[i].ParameterType));
+
+                if (methodParameters[i].IsOut)
+                {
+                    var local = Expression.Variable(methodParameters[i].ParameterType.GetElementType());
+                    variables.Add(local);
+                    var assignLocal = Expression.Assign(local, Expression.Convert(argument, methodParameters[i].ParameterType.GetElementType()));
+                    beforeInvoke.Add(assignLocal);
+
+                    var arrayAccess = Expression.ArrayAccess(parameter, Expression.Constant(i));
+                    var assignBack = Expression.Assign(arrayAccess, Expression.Convert(local, typeof(object)));
+                    afterInvoke.Add(assignBack);
+                    arguments.Add(local);
+                }
+                else
+                {
+                    arguments.Add(Expression.Convert(argument, methodParameters[i].ParameterType));
+                }
             }
 
-            Expression invoke = Expression.Call(Expression.Constant(_source), method, arguments);
+            LabelTarget returnTarget = Expression.Label(typeof(object));
+            ParameterExpression returnVariable = Expression.Variable(typeof(object));
+            variables.Add(returnVariable);
+            LabelExpression returnLabel = Expression.Label(returnTarget, returnVariable);
+            afterInvoke.Add(Expression.Return(returnTarget, returnVariable));
+            afterInvoke.Add(returnLabel);
+
+            Expression invokeSource = Expression.Call(Expression.Constant(_source), method, arguments);
             if (returnTypeCompatibility == TypeCompatibility.FromGoose)
             {
-                var asIGooseTarget = Expression.Convert(invoke, typeof(IGooseTarget));
-                var getSource = Expression.Property(asIGooseTarget, nameof(IGooseTarget.Source));
-                invoke = getSource;
+                var asIGooseTarget = Expression.Convert(invokeSource, typeof(IGooseTyped));
+                var getSource = Expression.Property(asIGooseTarget, nameof(IGooseTyped.Source));
+                invokeSource = getSource;
             }
             else if (returnTypeCompatibility == TypeCompatibility.ToGoose)
             {
                 var gooseType = Expression.Constant(invocation.Method.ReturnType);
-                invoke = Expression.Call(GooseExtensionMethod, invoke, gooseType, Expression.Constant(_options.KnownTypes.ToArray()));
+                invokeSource = Expression.Call(GooseExtensionMethod, invokeSource, gooseType, Expression.Constant(_options.KnownTypes.ToArray()));
             }
 
-            Expression body;
+            invoke.Add(returnVariable);
             if (method.ReturnType == typeof(void))
             {
-                body = Expression.Block(invoke, Expression.Constant(null));
+                invoke.Add(invokeSource);
+                invoke.Add(Expression.Assign(returnVariable, Expression.Constant(null)));
             }
             else
             {
-                body = Expression.Convert(invoke, typeof(object));
+                invoke.Add(Expression.Assign(returnVariable, Expression.Convert(invokeSource, typeof(object))));
             }
+
+
+            Expression body = Expression.Block(variables, beforeInvoke.Concat(invoke).Concat(afterInvoke));
 
             var exceptions = _options.KnownTypes
                 .Where(t => t.SourceType.IsSubclassOf(typeof(Exception)))
@@ -175,21 +233,35 @@ namespace Goose
 
             if (exceptions.Count > 0)
             {
-                var catches = exceptions.Select(e =>
-                {
-                    var p = Expression.Parameter(e.SourceType);
-                    var gooseType = Expression.Constant(e.TargetType);
-                    var callGooseExtension = Expression.Call(GooseExtensionMethod, p, gooseType, Expression.Constant(_options.KnownTypes.ToArray()));
+                var catches = exceptions
+                    .OrderByDescending(e => GetInheritanceString(e.SourceType))
+                    .Select(e =>
+                    {
+                        var p = Expression.Parameter(e.SourceType);
+                        var gooseType = Expression.Constant(e.TargetType);
+                        var callGooseExtension = Expression.Call(GooseExtensionMethod, p, gooseType, Expression.Constant(_options.KnownTypes.ToArray()));
 
-                    var ctor = typeof(WrappedException<>).MakeGenericType(e.TargetType).GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance).Single();
-                    var throwWrap = Expression.Throw(Expression.New(ctor, Expression.Convert(callGooseExtension, e.TargetType)));
-                    return Expression.Catch(p, Expression.Block(throwWrap, Expression.Constant(null)));
-                });
-                
+                        var ctor = typeof(WrappedException<>).MakeGenericType(e.TargetType).GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance).Single();
+                        var throwWrap = Expression.Throw(Expression.New(ctor, Expression.Convert(callGooseExtension, e.TargetType)));
+                        return Expression.Catch(p, Expression.Block(throwWrap, Expression.Constant(null)));
+                    });
+
                 body = Expression.TryCatch(body, catches.ToArray());
             }
 
-            return Expression.Lambda<Func<object[], object>>(body, parameter).Compile();
+            var lambda = Expression.Lambda<Func<object[], object>>(body, parameter);
+            return lambda.Compile();
+        }
+
+        private string GetInheritanceString(Type type)
+        {
+            var typeNames = new Stack<string>();
+            while (!type.Equals(typeof(object)))
+            {
+                typeNames.Push(type.Name);
+                type = type.BaseType;
+            }
+            return string.Join("->", typeNames.Reverse());
         }
     }
 }

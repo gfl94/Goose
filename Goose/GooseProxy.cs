@@ -12,7 +12,7 @@ namespace Goose
         public static object Build(object source, Type targetType, GooseOptions options)
         {
             var interceptor = new GooseInterceptor(source, targetType, options);
-            return ProxyGenerator.CreateInterfaceProxyWithoutTarget(targetType, new[] { typeof(IGooseTarget) }, interceptor);
+            return ProxyGenerator.CreateInterfaceProxyWithoutTarget(targetType, new[] { typeof(IGooseTyped) }, interceptor);
         }
     }
 }

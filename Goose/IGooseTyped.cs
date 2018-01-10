@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Goose
 {
-    public interface IGooseTarget
+    public interface IGooseTyped
     {
         object Source { get; }
     }

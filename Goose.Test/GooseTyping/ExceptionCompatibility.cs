@@ -75,8 +75,8 @@ namespace Goose.Test.GooseTyping
 
             var ex = Assert.Throws<WrappedException<IFoodExpiredException>>(() => personTarget.Eat(foodTarget));
             Assert.NotNull(ex.Exception);
-            Assert.Same(food, ex.Exception.ExpiredFood.GetSource());
-            Assert.Equal(typeof(FoodExpiredException), ex.Exception.GetSource().GetType());            
+            Assert.Same(food, ex.Exception.ExpiredFood.GetSource<Food>());
+            Assert.Same(food, ex.Exception.GetSource<FoodExpiredException>().ExpiredFood);
         }
 
         [Fact(Skip = "System.Exception class not works well")]

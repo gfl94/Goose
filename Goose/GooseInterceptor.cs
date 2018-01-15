@@ -58,15 +58,14 @@ namespace Goose
                 .Where(m => m.Name.Equals(invocation.Method.Name));
 
             var invocationParameters = invocation.Method.GetParameters();
-            var argumentCompatibilities = new TypeCompatibility[invocation.Arguments.Length];
-            var returnTypeCompatibility = TypeCompatibility.Incompatible;
-            var validSourceMethods = new List<MethodInfo>();
+            var candidates = new List<MethodCompatibility>();
 
             foreach (var sourceMethod in sourceCandidateMethods)
             {
                 var sourceParameters = sourceMethod.GetParameters();
                 if (sourceParameters.Length != invocationParameters.Length) continue;
 
+                var argumentCompatibilities = new TypeCompatibility[invocation.Arguments.Length];
                 var parameterCompatible = true;
                 for (var i = 0; i < sourceParameters.Length; i++)
                 {
@@ -80,46 +79,51 @@ namespace Goose
 
                 if (!parameterCompatible) continue;
 
-                returnTypeCompatibility = GetCompatibility(sourceMethod.ReturnType, invocation.Method.ReturnType);
+                var returnTypeCompatibility = GetCompatibility(sourceMethod.ReturnType, invocation.Method.ReturnType);
                 if (returnTypeCompatibility == TypeCompatibility.Incompatible) continue;
 
-                validSourceMethods.Add(sourceMethod);
+                candidates.Add(new MethodCompatibility(sourceMethod, argumentCompatibilities, returnTypeCompatibility));
             }
 
-            MethodInfo candidate = null;
+            MethodCompatibility candidate = null;
 
-            if (validSourceMethods.Count > 1)
+            if (candidates.Count > 1)
             {
-                var currentType = sourceType;
-                while (true)
+                var highestScoredCandidates = candidates
+                    .OrderByDescending(c => c.Score)
+                    .TakeWhile((c, i) => i == 0 || candidates[i].Score == candidates[i - 1].Score)
+                    .ToList();
+
+                if (highestScoredCandidates.Count == 1)
                 {
-                    var candidates = validSourceMethods
-                        .Where(m => m.DeclaringType.Equals(currentType))
+                    candidate = highestScoredCandidates.Single();
+                }
+                else
+                {
+                    var orderByDeclaringTypes = highestScoredCandidates
+                        .Select(c => new { Candidate = c, Inheritance = GetInheritanceString(c.Method.DeclaringType) })
+                        .OrderByDescending(x => x.Inheritance)
                         .ToList();
 
-                    if (candidates.Count > 1)
-                        throw new GooseAmbiguousMatchException(validSourceMethods);
-
-                    if (candidates.Count == 1)
+                    if (orderByDeclaringTypes[0].Inheritance.Equals(orderByDeclaringTypes[1].Inheritance))
                     {
-                        candidate = candidates.Single();
-                        break;
+                        throw new GooseAmbiguousMatchException(orderByDeclaringTypes[0].Candidate.Method, orderByDeclaringTypes[1].Candidate.Method);
                     }
 
-                    currentType = currentType.BaseType;
+                    candidate = orderByDeclaringTypes[0].Candidate;
                 }
             }
-            else if (validSourceMethods.Count == 1)
+            else if (candidates.Count == 1)
             {
-                candidate = validSourceMethods.Single();
+                candidate = candidates.Single();
             }
-            else if (validSourceMethods.Count == 0)
+            else if (candidates.Count == 0)
             {
                 _blacklist.Add(invocation.Method);
                 throw new GooseNotImplementedException(sourceType, invocation.Method);
             }
 
-            var handler = MakeHandler(invocation, candidate, argumentCompatibilities, returnTypeCompatibility);
+            var handler = MakeHandler(invocation, candidate);
             invocation.ReturnValue = handler(invocation.Arguments);
             _knownHandlers.Add(invocation.Method, handler);
         }
@@ -144,7 +148,7 @@ namespace Goose
             return TypeCompatibility.Incompatible;
         }
 
-        private Func<object[], object> MakeHandler(IInvocation invocation, MethodInfo method, TypeCompatibility[] argumentCompatibilities, TypeCompatibility returnTypeCompatibility)
+        private Func<object[], object> MakeHandler(IInvocation invocation, MethodCompatibility candidate)
         {
             var parameter = Expression.Parameter(typeof(object[]));
             var variables = new List<ParameterExpression>();
@@ -153,22 +157,22 @@ namespace Goose
             var afterInvoke = new List<Expression>();
 
             var arguments = new List<Expression>();
-            var methodParameters = method.GetParameters();
-            for (var i = 0; i < argumentCompatibilities.Length; i++)
+            var methodParameters = candidate.Method.GetParameters();
+            for (var i = 0; i < candidate.ArgumentCompatibilities.Length; i++)
             {
                 var arrayIndex = Expression.ArrayIndex(parameter, Expression.Constant(i));
                 Expression argument = null;
-                if (argumentCompatibilities[i] == TypeCompatibility.Same)
+                if (candidate.ArgumentCompatibilities[i] == TypeCompatibility.Same)
                 {
                     argument = arrayIndex;
                 }
-                else if (argumentCompatibilities[i] == TypeCompatibility.FromGoose)
+                else if (candidate.ArgumentCompatibilities[i] == TypeCompatibility.FromGoose)
                 {
                     var asIGooseTarget = Expression.Convert(arrayIndex, typeof(IGooseTyped));
                     var getSource = Expression.Property(asIGooseTarget, nameof(IGooseTyped.Source));
                     argument = getSource;
                 }
-                else if (argumentCompatibilities[i] == TypeCompatibility.ToGoose)
+                else if (candidate.ArgumentCompatibilities[i] == TypeCompatibility.ToGoose)
                 {
                     var gooseType = Expression.Constant(methodParameters[i].ParameterType);
                     var callGooseExtension = Expression.Call(GooseExtensionMethod, arrayIndex, gooseType, Expression.Constant(_options.KnownTypes.ToArray()));
@@ -200,21 +204,21 @@ namespace Goose
             afterInvoke.Add(Expression.Return(returnTarget, returnVariable));
             afterInvoke.Add(returnLabel);
 
-            Expression invokeSource = Expression.Call(Expression.Constant(_source), method, arguments);
-            if (returnTypeCompatibility == TypeCompatibility.FromGoose)
+            Expression invokeSource = Expression.Call(Expression.Constant(_source), candidate.Method, arguments);
+            if (candidate.ReturnCompatibility == TypeCompatibility.FromGoose)
             {
                 var asIGooseTarget = Expression.Convert(invokeSource, typeof(IGooseTyped));
                 var getSource = Expression.Property(asIGooseTarget, nameof(IGooseTyped.Source));
                 invokeSource = getSource;
             }
-            else if (returnTypeCompatibility == TypeCompatibility.ToGoose)
+            else if (candidate.ReturnCompatibility == TypeCompatibility.ToGoose)
             {
                 var gooseType = Expression.Constant(invocation.Method.ReturnType);
                 invokeSource = Expression.Call(GooseExtensionMethod, invokeSource, gooseType, Expression.Constant(_options.KnownTypes.ToArray()));
             }
 
             invoke.Add(returnVariable);
-            if (method.ReturnType == typeof(void))
+            if (candidate.Method.ReturnType == typeof(void))
             {
                 invoke.Add(invokeSource);
                 invoke.Add(Expression.Assign(returnVariable, Expression.Constant(null)));
@@ -261,7 +265,7 @@ namespace Goose
                 typeNames.Push(type.Name);
                 type = type.BaseType;
             }
-            return string.Join("->", typeNames.Reverse());
+            return string.Join("|", typeNames.Reverse());
         }
     }
 }

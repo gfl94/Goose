@@ -46,7 +46,6 @@ namespace Goose.Test.DuckTyping
         [Fact]
         public void Get_Source_Reference_Check()
         {
-            Assert.Same(_source, _target.GetSource());
             Assert.Same(_source, _target.GetSource<Duck>());
         }
     }

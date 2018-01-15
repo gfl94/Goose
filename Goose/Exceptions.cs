@@ -23,7 +23,7 @@ namespace Goose
     {
         public IEnumerable<MethodInfo> Methods { get; }
 
-        public GooseAmbiguousMatchException(IEnumerable<MethodInfo> methods)
+        public GooseAmbiguousMatchException(params MethodInfo[] methods)
             : base($"The method call is ambiguous in {string.Join(", ", methods.Select(m => m.ToString()))}")
         {
             this.Methods = methods;

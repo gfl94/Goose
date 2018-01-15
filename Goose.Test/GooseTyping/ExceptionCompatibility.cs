@@ -79,7 +79,7 @@ namespace Goose.Test.GooseTyping
             Assert.Same(food, ex.Exception.GetSource<FoodExpiredException>().ExpiredFood);
         }
 
-        [Fact(Skip = "System.Exception class not works well")]
+        [Fact]
         public void Interchangable_For_System_Exception_class_Registered()
         {
             Person person = new Person();
@@ -91,7 +91,7 @@ namespace Goose.Test.GooseTyping
 
             var ex = Assert.Throws<WrappedException<IException>>(() => personTarget.Drink(poisonTarget));
             Assert.NotNull(ex.Exception);
-            Assert.Equal(typeof(Exception), ex.Exception.GetSource().GetType());
+            Assert.Equal(typeof(Exception), ex.Exception.GetType());
         }
     }
 }

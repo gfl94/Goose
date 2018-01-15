@@ -109,7 +109,7 @@ namespace Goose.Test.GooseTyping
             Assert.Throws<GooseAmbiguousMatchException>(() => personTarget.EatOne(foodTarget));
         }
 
-        [Fact(Skip = "Overload with different type of parameter cause error")]
+        [Fact]
         public void Same_Number_of_Parameter_Overload_Test()
         {
             Person person = new Person();

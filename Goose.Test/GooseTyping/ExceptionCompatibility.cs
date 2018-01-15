@@ -17,15 +17,23 @@ namespace Goose.Test.GooseTyping
             public int FoodCalories { get; set; }
         }
 
+        public interface IPoison { }
+
+        class Poison {}
+
         public interface IPerson
         {
             void Eat(IFood food);
+            void Drink(IPoison poison);
         }
 
         class Person
         {
             public void Eat(Food food) => throw new FoodExpiredException(food);
+            public void Drink(Poison poison) => throw new Exception("I can not drink this");
         }
+
+        interface IException { }
 
         public interface IFoodExpiredException
         {
@@ -69,6 +77,21 @@ namespace Goose.Test.GooseTyping
             Assert.NotNull(ex.Exception);
             Assert.Same(food, ex.Exception.ExpiredFood.GetSource<Food>());
             Assert.Same(food, ex.Exception.GetSource<FoodExpiredException>().ExpiredFood);
+        }
+
+        [Fact]
+        public void Interchangable_For_System_Exception_class_Registered()
+        {
+            Person person = new Person();
+            Poison poison = new Poison();
+            IPoison poisonTarget = poison.As<IPoison>();
+            IPerson personTarget = person.As<IPerson>(
+                GooseTypePair.Create<Poison, IPoison>(),
+                GooseTypePair.Create<Exception, IException>());
+
+            var ex = Assert.Throws<WrappedException<IException>>(() => personTarget.Drink(poisonTarget));
+            Assert.NotNull(ex.Exception);
+            Assert.Equal(typeof(Exception), ex.Exception.GetType());
         }
     }
 }

@@ -17,6 +17,16 @@ namespace Goose.Test.GooseTyping
             public int FoodCalories { get; set; }
         }
 
+        public interface IFruit
+        {
+            int FoodCalories { get; }
+        }
+
+        class Fruit
+        {
+            public int FoodCalories { get; set; }
+        }
+
         public interface IRemain
         {
             int RemainCalories { get; }
@@ -31,6 +41,9 @@ namespace Goose.Test.GooseTyping
         {
             int CaloriesTaken { get; }
             IRemain Eat(IFood food, int percentage, out bool enough);
+            void Eat(IFood food, int percentage);
+            void EatOne(IFood food);
+            void EatOne(IFruit fruit);
         }
 
         class Person
@@ -45,6 +58,10 @@ namespace Goose.Test.GooseTyping
                 enough = false;
                 return new Remain { RemainCalories = food.FoodCalories - calories };
             }
+            public void Eat(Food food, int percentage) { }
+
+            public void EatOne(Food food) { }
+            public void EatOne(Fruit fruit) { }
         }
 
         [Fact]
@@ -75,6 +92,50 @@ namespace Goose.Test.GooseTyping
 
             IRemain remain = personTarget.Eat(foodTarget, 90, out var enough);
             Assert.Equal(food.FoodCalories, person.CaloriesTaken + remain.RemainCalories);
+        }
+
+        [Fact]
+        public void Ambiguous_If_Multiple_Register()
+        {
+            Person person = new Person();
+            Food food = new Food { FoodCalories = 100 };
+
+            IFood foodTarget = food.As<IFood>();
+            IPerson personTarget = person.As<IPerson>(
+                GooseTypePair.Create<Food, IFood>(),
+                GooseTypePair.Create<Fruit, IFood>(),
+                GooseTypePair.Create<Remain, IRemain>());
+
+            Assert.Throws<GooseAmbiguousMatchException>(() => personTarget.EatOne(foodTarget));
+        }
+
+        [Fact]
+        public void Same_Number_of_Parameter_Overload_Test()
+        {
+            Person person = new Person();
+            Food food = new Food { FoodCalories = 100 };
+
+            IFood foodTarget = food.As<IFood>();
+            IPerson personTarget = person.As<IPerson>(
+                GooseTypePair.Create<Fruit, IFruit>(),
+                GooseTypePair.Create<Food, IFood>(),
+                GooseTypePair.Create<Remain, IRemain>());
+
+            personTarget.EatOne(foodTarget);
+        }
+
+        [Fact]
+        public void Different_Number_Of_Parameter_Overload_Test()
+        {
+            Person person = new Person();
+            Food food = new Food { FoodCalories = 100 };
+
+            IFood foodTarget = food.As<IFood>();
+            IPerson personTarget = person.As<IPerson>(
+                GooseTypePair.Create<Food, IFood>(),
+                GooseTypePair.Create<Remain, IRemain>());
+
+            personTarget.Eat(foodTarget, 90);
         }
     }
 }

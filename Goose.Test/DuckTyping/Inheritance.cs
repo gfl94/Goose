@@ -46,5 +46,25 @@ namespace Goose.Test.DuckTyping
             Assert.Equal(await source.WalkAsync(), await target.WalkAsync());
             Assert.Same(source, target.GetSource<ExecitedDuck>());
         }
+
+        [Fact(Skip = "unexpected result while invoke overwrite method with the base pointer points to the superclass")]
+        public void Envoke_Overwrite_Method()
+        {
+            Duck duck = new ExecitedDuck();
+            IDuck target = duck.As<IDuck>();
+            Assert.Equal(duck.Quack(), target.Quack());
+            Assert.Same(duck, target.GetSource<Duck>());
+            Assert.Same(duck, target.GetSource<ExecitedDuck>());
+        }
+
+        [Fact]
+        public async void Polymorphism_For_Override_Method()
+        {
+            Duck duck = new ExecitedDuck();
+            IDuck target = duck.As<IDuck>();
+            Assert.Equal(await duck.WalkAsync(), await target.WalkAsync());
+            Assert.Same(duck, target.GetSource<Duck>());
+            Assert.Same(duck, target.GetSource<ExecitedDuck>());
+        }
     }
 }

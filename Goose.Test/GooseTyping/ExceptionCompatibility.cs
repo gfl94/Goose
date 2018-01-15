@@ -33,7 +33,7 @@ namespace Goose.Test.GooseTyping
             public void Drink(Poison poison) => throw new Exception("I can not drink this");
         }
 
-        interface IException { }
+        public interface IException { }
 
         public interface IFoodExpiredException
         {
@@ -91,7 +91,7 @@ namespace Goose.Test.GooseTyping
 
             var ex = Assert.Throws<WrappedException<IException>>(() => personTarget.Drink(poisonTarget));
             Assert.NotNull(ex.Exception);
-            Assert.Equal(typeof(Exception), ex.Exception.GetType());
+            Assert.Equal(typeof(Exception), ex.Exception.GetSource<Exception>().GetType());
         }
     }
 }

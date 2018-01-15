@@ -232,7 +232,7 @@ namespace Goose
             Expression body = Expression.Block(variables, beforeInvoke.Concat(invoke).Concat(afterInvoke));
 
             var exceptions = _options.KnownTypes
-                .Where(t => t.SourceType.IsSubclassOf(typeof(Exception)))
+                .Where(t => typeof(Exception).IsAssignableFrom(t.SourceType))
                 .ToList();
 
             if (exceptions.Count > 0)

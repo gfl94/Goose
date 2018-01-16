@@ -9,6 +9,7 @@
     <PackageReference Include="xunit" Version="2.3.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
     <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
+    <ProjectReference Include="..\DuckLib\DuckLib.csproj" />
     
     <ProjectReference Include="..\Goose.Scanner\Goose.Scanner.csproj" />
   </ItemGroup>

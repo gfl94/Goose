@@ -8,14 +8,9 @@ namespace Goose.Scanner.Test
     {
         public void M()
         {
-            var pairs = GooseTypePairs.Build(options =>
+            var pairs = GooseTypePairs.Scan(options =>
             {
-                //options.FromAssembly(sourceAssembly)
-                //    .ToAssembly(targetAssembly)
-                //    .WithDefaultConvention()     //make all Foo -> IFoo pattern pair
-                //    .WithConvention((sourceType, targetType) => targetType.Name == "IStandard" + sourceType.Name);  // Foo -> IStandardFoo convention
-
-                //other similiar registers
+                
             });
 
             //use the pairs (probably cache it)

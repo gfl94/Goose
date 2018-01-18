@@ -28,7 +28,8 @@ namespace Goose
         {
             switch (compatibility)
             {
-                case TypeCompatibility.Same: return 100;
+                case TypeCompatibility.NoOp: return 100;
+                case TypeCompatibility.ValueType: return 90;
                 case TypeCompatibility.ToGoose: return 10;
                 case TypeCompatibility.FromGoose: return 1;
                 default: return 0;

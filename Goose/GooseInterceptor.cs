@@ -130,16 +130,24 @@ namespace Goose
 
         private TypeCompatibility GetCompatibility(Type fromType, Type toType)
         {
-            if (fromType.Equals(toType)) return TypeCompatibility.Same;
+            if (fromType.Equals(toType)) return TypeCompatibility.NoOp;            
 
             foreach (var pair in _options.KnownTypes)
             {
                 if (pair.SourceType.Equals(fromType) && pair.TargetType.Equals(toType))
                 {
-                    return TypeCompatibility.ToGoose;
+                    switch (pair.ConvertMethod)
+                    {
+                        case ConvertMethod.NoOp: return TypeCompatibility.NoOp;
+                        case ConvertMethod.ValueType: return TypeCompatibility.ValueType;
+                        case ConvertMethod.Goose: return TypeCompatibility.ToGoose;
+                        default: return TypeCompatibility.Incompatible;
+                    }
                 }
 
-                if (pair.SourceType.Equals(toType) && pair.TargetType.Equals(fromType))
+                if (pair.SourceType.Equals(toType) 
+                    && pair.TargetType.Equals(fromType) 
+                    && pair.ConvertMethod == ConvertMethod.Goose)
                 {
                     return TypeCompatibility.FromGoose;
                 }
@@ -162,9 +170,16 @@ namespace Goose
             {
                 var arrayIndex = Expression.ArrayIndex(parameter, Expression.Constant(i));
                 Expression argument = null;
-                if (candidate.ArgumentCompatibilities[i] == TypeCompatibility.Same)
+                if (candidate.ArgumentCompatibilities[i] == TypeCompatibility.NoOp)
                 {
                     argument = arrayIndex;
+                }
+                else if (candidate.ArgumentCompatibilities[i] == TypeCompatibility.ValueType)
+                {
+                    argument = Expression.Call(
+                        typeof(ValueTypeConverter).GetMethod(nameof(ValueTypeConverter.Convert)),
+                        arrayIndex,
+                        Expression.Constant(methodParameters[i].ParameterType));
                 }
                 else if (candidate.ArgumentCompatibilities[i] == TypeCompatibility.FromGoose)
                 {
@@ -205,6 +220,13 @@ namespace Goose
             afterInvoke.Add(returnLabel);
 
             Expression invokeSource = Expression.Call(Expression.Constant(_source), candidate.Method, arguments);
+            if (candidate.ReturnCompatibility == TypeCompatibility.ValueType)
+            {
+                invokeSource = Expression.Call(
+                    typeof(ValueTypeConverter).GetMethod(nameof(ValueTypeConverter.Convert)),
+                    Expression.Convert(invokeSource, typeof(object)),
+                    Expression.Constant(invocation.Method.ReturnType));
+            }
             if (candidate.ReturnCompatibility == TypeCompatibility.FromGoose)
             {
                 var asIGooseTarget = Expression.Convert(invokeSource, typeof(IGooseTyped));
@@ -227,7 +249,6 @@ namespace Goose
             {
                 invoke.Add(Expression.Assign(returnVariable, Expression.Convert(invokeSource, typeof(object))));
             }
-
 
             Expression body = Expression.Block(variables, beforeInvoke.Concat(invoke).Concat(afterInvoke));
 

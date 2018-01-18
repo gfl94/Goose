@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Goose
 {
-    enum TypeCompatibility
+    public enum ConvertMethod
     {
-        Incompatible,
         NoOp,
         ValueType,
-        FromGoose,
-        ToGoose
+        Goose
     }
 }

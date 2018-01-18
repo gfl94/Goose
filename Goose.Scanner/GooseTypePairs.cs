@@ -6,18 +6,19 @@ namespace Goose.Scanner
 {
     public class GooseTypePairs
     {
-        public static GooseTypePair[] Scan(Action<IScanOptions> builder)
+        public static GooseTypePair[] Scan(Action<ISourceAssemblySelector> options)
         {
-            var options = new ScanOptions();
-            builder(options);
+            var selector = new SourceAssemblySelector();
+            options(selector);
 
-            return options.Blocks
-                .SelectMany(opt => opt.Source.GetTypes()
-                    .Where(type => !type.IsInterface)
-                    .SelectMany(source => opt.Target.GetTypes()
-                        .Where(target => target.IsInterface && opt.Conventions.Any(c => c.IsValidPair(source, target)))
-                        .Select(target => GooseTypePair.Create(source, target))))
-                .ToArray();
+            List<GooseTypePair> pairs = new List<GooseTypePair>();
+            return Populate(pairs, selector).ToArray();
+        }
+
+        private static List<GooseTypePair> Populate(List<GooseTypePair> pairs, ISelector selector)
+        {
+            selector.Populate(pairs);
+            return pairs;
         }
     }
 }

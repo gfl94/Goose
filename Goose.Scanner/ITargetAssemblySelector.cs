@@ -8,5 +8,6 @@ namespace Goose.Scanner
     public interface ITargetAssemblySelector: ISourceAssemblySelector
     {
         IConventionStrategySelector ToAssembly(Assembly assembly);
+        IConventionStrategySelector ToAssemblyOf<T>();
     }
 }

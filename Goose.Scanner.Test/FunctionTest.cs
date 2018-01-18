@@ -11,7 +11,7 @@ namespace Goose.Scanner.Test
         [Fact]
         public void Convention_Test()
         {
-            var pairs = GooseTypePairs.Build(options =>
+            var pairs = GooseTypePairs.Scan(options =>
             {
                 options.FromAssembly(typeof(Duck).Module.Assembly).ToAssembly(typeof(Duck).Module.Assembly)
                     .WithConvention((sourceType, targetType) => targetType.Name == "IStandard" + sourceType.Name);
@@ -23,10 +23,10 @@ namespace Goose.Scanner.Test
         [Fact]
         public void Default_Convention_Test()
         {
-            var pairs = GooseTypePairs.Build(options =>
+            var pairs = GooseTypePairs.Scan(options =>
             {
                 options.FromAssembly(typeof(Duck).Module.Assembly).ToAssembly(typeof(Duck).Module.Assembly)
-                    .WithDefaultConventions();
+                    .WithDefaultConvention();
             });
 
             Assert.True(CheckPairs(pairs, new GooseTypePair[] { GooseTypePair.Create<Duck, IDuck>() }));

@@ -14,6 +14,11 @@ namespace Goose.Scanner
             return AddSelector(assembly.GetTypes());
         }
 
+        public ITargetAssemblySelector FromAssemblyOf<T>()
+        {
+            return FromAssembly(typeof(T).Assembly);
+        }
+
         private ITargetAssemblySelector AddSelector(IEnumerable<Type> sources)
         {
             var selector = new TargetAssemblySelector(this, sources);

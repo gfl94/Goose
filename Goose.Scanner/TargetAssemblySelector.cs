@@ -23,6 +23,11 @@ namespace Goose.Scanner
             return AddSelector(assembly.GetTypes());
         }
 
+        public IConventionStrategySelector ToAssemblyOf<T>()
+        {
+            return ToAssembly(typeof(T).Assembly);
+        }
+
         void ISelector.Populate(List<GooseTypePair> pairs)
         {
             if (Selectors.Count == 0)
@@ -50,6 +55,11 @@ namespace Goose.Scanner
         public ITargetAssemblySelector FromAssembly(Assembly assembly)
         {
             return Inner.FromAssembly(assembly);
+        }
+
+        public ITargetAssemblySelector FromAssemblyOf<T>()
+        {
+            return Inner.FromAssemblyOf<T>();
         }
         #endregion
     }

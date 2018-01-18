@@ -7,7 +7,7 @@ namespace Goose.Scanner
 {
     class SourceAssemblySelector : ISourceAssemblySelector, ISelector
     {
-        private List<ISelector> Selectors { get; } = new List<ISelector>();
+        private List<ISelector> _selectors { get; } = new List<ISelector>();
 
         public ITargetAssemblySelector FromAssembly(Assembly assembly)
         {
@@ -16,27 +16,27 @@ namespace Goose.Scanner
 
         public ITargetAssemblySelector FromAssemblyOf<T>()
         {
-            return FromAssembly(typeof(T).Assembly);
+            return this.FromAssembly(typeof(T).Assembly);
         }
 
         private ITargetAssemblySelector AddSelector(IEnumerable<Type> sources)
         {
             var selector = new TargetAssemblySelector(this, sources);
 
-            Selectors.Add(selector);
+            _selectors.Add(selector);
 
             return selector;
         }
 
         void ISelector.Populate(List<GooseTypePair> pairs)
         {
-            if (Selectors.Count == 0)
+            if (_selectors.Count == 0)
             {
-                Console.WriteLine("no from assembly");
+                Console.WriteLine("no source assembly");
                 return;
             }
 
-            foreach (var selector in Selectors)
+            foreach (var selector in _selectors)
             {
                 selector.Populate(pairs);
             }

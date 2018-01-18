@@ -7,15 +7,15 @@ namespace Goose.Scanner
 {
     class TargetAssemblySelector : ITargetAssemblySelector, ISelector
     {
-        private ISourceAssemblySelector Inner { get; }
-        private IEnumerable<Type> Sources { get; }
+        private ISourceAssemblySelector _inner { get; }
+        private IEnumerable<Type> _sources { get; }
 
-        private List<ISelector> Selectors { get; } = new List<ISelector>();
+        private List<ISelector> _selectors { get; } = new List<ISelector>();
 
         public TargetAssemblySelector(ISourceAssemblySelector inner, IEnumerable<Type> sources)
         {
-            Inner = inner;
-            Sources = sources;
+            _inner = inner;
+            _sources = sources;
         }
 
         public IConventionStrategySelector ToAssembly(Assembly assembly)
@@ -25,18 +25,18 @@ namespace Goose.Scanner
 
         public IConventionStrategySelector ToAssemblyOf<T>()
         {
-            return ToAssembly(typeof(T).Assembly);
+            return this.ToAssembly(typeof(T).Assembly);
         }
 
         void ISelector.Populate(List<GooseTypePair> pairs)
         {
-            if (Selectors.Count == 0)
+            if (_selectors.Count == 0)
             {
                 Console.WriteLine("no target assembly here");
                 return;
             }
 
-            foreach (var selector in Selectors)
+            foreach (var selector in _selectors)
             {
                 selector.Populate(pairs);
             }
@@ -44,9 +44,9 @@ namespace Goose.Scanner
 
         private IConventionStrategySelector AddSelector(IEnumerable<Type> targets)
         {
-            var selector = new ConventionStrategySelector(this, Sources, targets);
+            var selector = new ConventionStrategySelector(this, _sources, targets);
 
-            Selectors.Add(selector);
+            _selectors.Add(selector);
 
             return selector;
         }
@@ -54,12 +54,12 @@ namespace Goose.Scanner
         #region Chain Method
         public ITargetAssemblySelector FromAssembly(Assembly assembly)
         {
-            return Inner.FromAssembly(assembly);
+            return _inner.FromAssembly(assembly);
         }
 
         public ITargetAssemblySelector FromAssemblyOf<T>()
         {
-            return Inner.FromAssemblyOf<T>();
+            return _inner.FromAssemblyOf<T>();
         }
         #endregion
     }

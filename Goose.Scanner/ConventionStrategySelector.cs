@@ -7,46 +7,46 @@ namespace Goose.Scanner
 {
     class ConventionStrategySelector : IConventionStrategySelector, ISelector
     {
-        private ITargetAssemblySelector Inner { get; }
-        private IEnumerable<Type> Sources { get; }
-        private IEnumerable<Type> Targets { get; }
-        private IConvention Convention { get; set; }
+        private ITargetAssemblySelector _inner { get; }
+        private IEnumerable<Type> _sources { get; }
+        private IEnumerable<Type> _targets { get; }
+        private IConvention _convention { get; set; }
         
         public ConventionStrategySelector(ITargetAssemblySelector inner, IEnumerable<Type> sources, IEnumerable<Type> targets)
         {
-            Inner = inner;
-            Sources = sources;
-            Targets = targets;
+            _inner = inner;
+            _sources = sources;
+            _targets = targets;
         }
 
         public ISourceAssemblySelector WithConvention(Func<Type, Type, bool> predicate)
         {
-            return WithConvention(new DelegateConvention(predicate));
+            return this.WithConvention(new DelegateConvention(predicate));
         }
 
         public ISourceAssemblySelector WithDefaultConvention()
         {
-            return WithConvention(DefaultConvention.Instance);
+            return this.WithConvention(DefaultConvention.Instance);
         }
 
         public ISourceAssemblySelector WithConvention<T>() where T : IConvention, new()
         {
-            return WithConvention(new T());
+            return this.WithConvention(new T());
         }
 
         public ISourceAssemblySelector WithConvention(IConvention convention)
         {
-            Convention = convention;
+            _convention = convention;
             return this;
         }
 
         void ISelector.Populate(List<GooseTypePair> pairs)
         {
-            foreach (var target in Targets)
+            foreach (var target in _targets)
             {
-                foreach (var source in Sources)
+                foreach (var source in _sources)
                 {
-                    if (Convention.IsValidPair(source, target))
+                    if (_convention.IsValidPair(source, target))
                     {
                         pairs.Add(GooseTypePair.Create(source, target));
                     }
@@ -57,22 +57,22 @@ namespace Goose.Scanner
         #region Chain Methods
         public ITargetAssemblySelector FromAssembly(Assembly assembly)
         {
-            return Inner.FromAssembly(assembly);
+            return _inner.FromAssembly(assembly);
         }
 
         public IConventionStrategySelector ToAssembly(Assembly assembly)
         {
-            return Inner.ToAssembly(assembly);
+            return _inner.ToAssembly(assembly);
         }
 
         public IConventionStrategySelector ToAssemblyOf<T>()
         {
-            return Inner.ToAssemblyOf<T>();
+            return _inner.ToAssemblyOf<T>();
         }
 
         public ITargetAssemblySelector FromAssemblyOf<T>()
         {
-            return Inner.FromAssemblyOf<T>();
+            return _inner.FromAssemblyOf<T>();
         }
         #endregion
     }

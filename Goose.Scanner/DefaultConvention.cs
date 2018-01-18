@@ -10,7 +10,8 @@ namespace Goose.Scanner
 
         public bool IsValidPair(Type sourceType, Type targetType)
         {
-            throw new NotImplementedException();
+            return targetType.Name.StartsWith("I")
+               && targetType.Name.Substring(1).CompareTo(sourceType.Name) == 0;
         }
     }
 }

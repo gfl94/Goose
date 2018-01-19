@@ -7,7 +7,9 @@ namespace Goose.Scanner.Flow
     public interface ITargetAssemblyRegistered
     {
         /// <summary>
-        /// The default convention makes Foo/IFoo pairs for public class Foo and public interface IFoo
+        /// The default convention makes pairs for:
+        ///     1. public class Foo in source assembly and public interface IFoo in target assembly
+        ///     2. public enum type E in source assembly and public enum type E in target assembly        
         /// </summary>
         /// <returns></returns>
         IScanOptionsBlock WithDefaultConvention();

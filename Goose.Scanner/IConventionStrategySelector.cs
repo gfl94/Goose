@@ -6,9 +6,9 @@ namespace Goose.Scanner
 {
     public interface IConventionStrategySelector: ITargetAssemblySelector
     {
-        ISourceAssemblySelector WithDefaultConvention();
-        ISourceAssemblySelector WithConvention(Func<Type, Type, bool> predicate);
-        ISourceAssemblySelector WithConvention<T>() where T : IConvention, new();
-        ISourceAssemblySelector WithConvention(IConvention convention);
+        IConventionStrategySelector WithDefaultConvention();
+        IConventionStrategySelector WithConvention(Func<Type, Type, bool> predicate);
+        IConventionStrategySelector WithConvention<T>() where T : IConvention, new();
+        IConventionStrategySelector WithConvention(IConvention convention);
     }
 }

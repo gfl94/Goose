@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using System.Linq;
 
 namespace Goose.Scanner
 {
@@ -10,7 +11,7 @@ namespace Goose.Scanner
         private ITargetAssemblySelector _inner { get; }
         private IEnumerable<Type> _sources { get; }
         private IEnumerable<Type> _targets { get; }
-        private IConvention _convention { get; set; }
+        private List<IConvention> _convention { get; } = new List<IConvention>();
         
         public ConventionStrategySelector(ITargetAssemblySelector inner, IEnumerable<Type> sources, IEnumerable<Type> targets)
         {
@@ -19,39 +20,33 @@ namespace Goose.Scanner
             _targets = targets;
         }
 
-        public ISourceAssemblySelector WithConvention(Func<Type, Type, bool> predicate)
+        public IConventionStrategySelector WithConvention(Func<Type, Type, bool> predicate)
         {
             return this.WithConvention(new DelegateConvention(predicate));
         }
 
-        public ISourceAssemblySelector WithDefaultConvention()
+        public IConventionStrategySelector WithDefaultConvention()
         {
             return this.WithConvention(DefaultConvention.Instance);
         }
 
-        public ISourceAssemblySelector WithConvention<T>() where T : IConvention, new()
+        public IConventionStrategySelector WithConvention<T>() where T : IConvention, new()
         {
             return this.WithConvention(new T());
         }
 
-        public ISourceAssemblySelector WithConvention(IConvention convention)
+        public IConventionStrategySelector WithConvention(IConvention convention)
         {
-            _convention = convention;
+            _convention.Add(convention);
             return this;
         }
 
         void ISelector.Populate(List<GooseTypePair> pairs)
         {
-            foreach (var target in _targets)
-            {
-                foreach (var source in _sources)
-                {
-                    if (_convention.IsValidPair(source, target))
-                    {
-                        pairs.Add(GooseTypePair.Create(source, target));
-                    }
-                };
-            };
+            pairs.AddRange(_targets.SelectMany(target => _sources.Where(source =>
+                    _convention.Any(conv => conv.IsValidPair(source, target))
+                ).Select(source => GooseTypePair.Create(source, target))
+            ));
         }
 
         #region Chain Methods

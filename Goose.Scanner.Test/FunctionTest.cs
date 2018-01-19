@@ -13,8 +13,8 @@ namespace Goose.Scanner.Test
         {
             var pairs = GooseTypePairs.Scan(options =>
             {
-                options.FromAssembly(typeof(Duck).Module.Assembly).ToAssembly(typeof(Duck).Module.Assembly)
-                    .WithConvention((sourceType, targetType) => targetType.Name == "IStandard" + sourceType.Name);
+                options.FromAssemblyOf<Duck>().ToAssemblyOf<Duck>().WithConvention((sourceType, targetType)
+                    => targetType.Name == "IStandard" + sourceType.Name);
             });
 
             Assert.True(CheckPairs(pairs, new GooseTypePair[] { GooseTypePair.Create<Fish, IStandardFish>() }));
@@ -25,11 +25,23 @@ namespace Goose.Scanner.Test
         {
             var pairs = GooseTypePairs.Scan(options =>
             {
-                options.FromAssembly(typeof(Duck).Module.Assembly).ToAssembly(typeof(Duck).Module.Assembly)
-                    .WithDefaultConvention();
+                options.FromAssemblyOf<Duck>().ToAssemblyOf<Duck>().WithDefaultConvention();
             });
 
             Assert.True(CheckPairs(pairs, new GooseTypePair[] { GooseTypePair.Create<Duck, IDuck>() }));
+        }
+
+        [Fact]
+        public void Chain_Convention_Test()
+        {
+            var pairs = GooseTypePairs.Scan(options => 
+            {
+                options.FromAssemblyOf<Duck>().ToAssemblyOf<Duck>().WithConvention((sourceType, targetType)
+                    => targetType.Name == "IStandard" + sourceType.Name).WithDefaultConvention();
+            });
+
+            Assert.True(CheckPairs(pairs, new GooseTypePair[] { GooseTypePair.Create<Duck, IDuck>(),
+                GooseTypePair.Create<Fish, IStandardFish>() }));
         }
 
         bool CheckPairs(GooseTypePair[] expected, GooseTypePair[] actual)
